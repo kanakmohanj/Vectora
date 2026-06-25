@@ -806,3 +806,544 @@ export default function App() {
 
   // ─── RENDERERS ───
   const hoverItem = mouseState.current.hoverItem;
+
+  return (
+    <>
+      <header>
+        <h1>VECTORA</h1>
+        {/* Make the branding badges dynamic based on the selected algorithm state */}
+        <span className={`badge ${selAlgo === "hnsw" ? "hl" : ""}`}>HNSW</span>
+        <span className={`badge ${selAlgo === "kdtree" ? "hl" : ""}`}>
+          KD-TREE
+        </span>
+        <span className={`badge ${selAlgo === "bruteforce" ? "hl" : ""}`}>
+          BRUTE FORCE
+        </span>
+
+        <span className={`badge ${geminiStatus.up ? "ok" : "err"}`}>
+          GEMINI {geminiStatus.up ? "✓" : "✗"}
+        </span>
+        <span id="statsLabel">
+          {allItems.length} vectors · {DIMS} dims
+        </span>
+      </header>
+
+      <div className="layout">
+        {/* ══ LEFT PANEL ══ */}
+        <div className="left-panel">
+          <div>
+            <div className="sec">Query (Demo Vectors)</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                placeholder="binary tree, sushi…"
+              />
+              <button className="btn-p" onClick={runSearch}>
+                ⚡ SEARCH
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="sec">Algorithm</div>
+            <div className="algo-row">
+              {["hnsw", "kdtree", "bruteforce"].map((a) => (
+                <div
+                  key={a}
+                  className={`algo-btn ${selAlgo === a ? "on" : ""}`}
+                  onClick={() => setSelAlgo(a)}
+                >
+                  {a.toUpperCase().replace("BRUTEFORCE", "BRUTE")}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="sec">Distance Metric</div>
+            <select value={metric} onChange={(e) => setMetric(e.target.value)}>
+              <option value="cosine">Cosine Similarity</option>
+              <option value="euclidean">Euclidean Distance</option>
+              <option value="manhattan">Manhattan Distance</option>
+            </select>
+          </div>
+          <div>
+            <div className="sec">
+              Top-K: <span>{topK}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={topK}
+              onChange={(e) => setTopK(e.target.value)}
+            />
+          </div>
+          <div>
+            <div className="sec">Category Legend</div>
+            <div className="legend">
+              <div className="leg-row">
+                <div
+                  className="dot"
+                  style={{ background: COL.cs, boxShadow: `0 0 5px ${COL.cs}` }}
+                ></div>
+                CS / Algorithms
+              </div>
+              <div className="leg-row">
+                <div
+                  className="dot"
+                  style={{
+                    background: COL.math,
+                    boxShadow: `0 0 5px ${COL.math}`,
+                  }}
+                ></div>
+                Mathematics
+              </div>
+              <div className="leg-row">
+                <div
+                  className="dot"
+                  style={{
+                    background: COL.food,
+                    boxShadow: `0 0 5px ${COL.food}`,
+                  }}
+                ></div>
+                Food & Cooking
+              </div>
+              <div className="leg-row">
+                <div
+                  className="dot"
+                  style={{
+                    background: COL.sports,
+                    boxShadow: `0 0 5px ${COL.sports}`,
+                  }}
+                ></div>
+                Sports & Games
+              </div>
+              <div className="leg-row">
+                <div
+                  className="dot"
+                  style={{
+                    background: COL.doc,
+                    boxShadow: `0 0 5px ${COL.doc}`,
+                  }}
+                ></div>
+                Documents (RAG)
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="sec">Insert Demo Vector</div>
+            <form
+              onSubmit={addVector}
+              style={{ display: "flex", flexDirection: "column", gap: 6 }}
+            >
+              <input
+                type="text"
+                name="meta"
+                placeholder="Description…"
+                required
+              />
+              <select name="cat">
+                <option value="cs">CS / Algorithms</option>
+                <option value="math">Mathematics</option>
+                <option value="food">Food & Cooking</option>
+                <option value="sports">Sports & Games</option>
+              </select>
+              <button type="submit" className="btn-s">
+                + INSERT
+              </button>
+            </form>
+          </div>
+          <div>
+            <div className="sec">Benchmark</div>
+            <button className="btn-s" onClick={runBenchmark}>
+              ▶ COMPARE ALL ALGOS
+            </button>
+          </div>
+        </div>
+
+        {/* ══ CENTER: SCATTER PLOT ══ */}
+        <div className="center-panel">
+          <canvas
+            ref={canvasRef}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseLeave={handleCanvasMouseLeave}
+          />
+        </div>
+
+        {/* ══ RIGHT PANEL ══ */}
+        <div className="right-panel">
+          <div className="tabs">
+            <div
+              className={`tab ${activeTab === "search" ? "on" : ""}`}
+              onClick={() => setActiveTab("search")}
+            >
+              SEARCH
+            </div>
+            <div
+              className={`tab ${activeTab === "docs" ? "on" : ""}`}
+              onClick={() => {
+                setActiveTab("docs");
+                loadDocList();
+              }}
+            >
+              DOCUMENTS
+            </div>
+            <div
+              className={`tab ${activeTab === "rag" ? "on" : ""}`}
+              onClick={() => setActiveTab("rag")}
+            >
+              ASK AI
+            </div>
+          </div>
+
+          {/* TAB: SEARCH */}
+          <div className={`tab-content ${activeTab === "search" ? "on" : ""}`}>
+            <div>
+              <div className="sec">Search Latency</div>
+              <div className="lat-big">
+                {searchLatency !== null
+                  ? searchLatency < 1000
+                    ? `${searchLatency} μs`
+                    : `${(searchLatency / 1000).toFixed(2)} ms`
+                  : "—"}
+              </div>
+              <div className="lat-sub">
+                {searchLatency !== null
+                  ? `${selAlgo.toUpperCase()} · ${metric} · k=${topK}`
+                  : "No query yet"}
+              </div>
+            </div>
+            <div>
+              <div className="sec">Top Matches</div>
+              <div className="results">
+                {searchResults.length === 0 ? (
+                  <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                    Run a search to see results…
+                  </div>
+                ) : (
+                  searchResults.map((r, i) => {
+                    const col = COL[r.category] || COL.default;
+                    return (
+                      <div key={r.id} className="rcard">
+                        <div className="rrank">#{i + 1} NEAREST</div>
+                        <div className="rmeta">{r.metadata}</div>
+                        <div className="rfoot">
+                          <span
+                            className="rcat"
+                            style={{
+                              background: `${col}18`,
+                              color: col,
+                              border: `1px solid ${col}44`,
+                            }}
+                          >
+                            {r.category.toUpperCase()}
+                          </span>
+                          <span className="rdist">
+                            dist: {r.distance.toFixed(5)}
+                          </span>
+                          <button
+                            className="del"
+                            onClick={() => deleteDemoItem(r.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="sec">Query Embedding (16D)</div>
+              <canvas
+                ref={vecCanvasRef}
+                height="76"
+                style={{
+                  background: "var(--bg)",
+                  borderRadius: 5,
+                  width: "100%",
+                  display: "block",
+                }}
+              ></canvas>
+            </div>
+
+            {benchmarks && (
+              <div>
+                <div className="sec">Algorithm Comparison</div>
+                <div className="bench">
+                  {[
+                    {
+                      lbl: "Brute Force",
+                      us: benchmarks.bruteforceUs,
+                      col: "#f38ba8",
+                    },
+                    { lbl: "KD-Tree", us: benchmarks.kdtreeUs, col: "#89dceb" },
+                    { lbl: "HNSW", us: benchmarks.hnswUs, col: "#b388ff" },
+                  ].map((b) => {
+                    const mx = Math.max(
+                      benchmarks.bruteforceUs,
+                      benchmarks.kdtreeUs,
+                      benchmarks.hnswUs,
+                      1,
+                    );
+                    const pct = Math.max((b.us / mx) * 100, 2);
+                    return (
+                      <div className="brow" key={b.lbl}>
+                        <div className="blabel">
+                          <span style={{ color: b.col }}>{b.lbl}</span>
+                          <span style={{ color: "var(--muted)" }}>
+                            {b.us < 1000
+                              ? `${b.us} μs`
+                              : `${(b.us / 1000).toFixed(2)} ms`}
+                          </span>
+                        </div>
+                        <div className="btrack">
+                          <div
+                            className="bfill"
+                            style={{ width: `${pct}%`, background: b.col }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div className="sec">HNSW Graph Layers</div>
+              <div className="layers">
+                {!hnswLayers ? (
+                  <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                    Loading…
+                  </div>
+                ) : (
+                  hnswLayers.nodesPerLayer.map((cnt, lyr) => {
+                    const maxN = hnswLayers.nodesPerLayer[0] || 1;
+                    const pct = Math.max((cnt / maxN) * 100, 2);
+                    const edg = hnswLayers.edgesPerLayer[lyr] || 0;
+                    return (
+                      <div className="lrow" key={lyr}>
+                        <div className="lnum">L{lyr}</div>
+                        <div className="ltrack">
+                          <div
+                            className="lfill"
+                            style={{ width: `${pct}%` }}
+                          ></div>
+                        </div>
+                        <div className="lcount">
+                          {cnt}n · {edg}e
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* TAB: DOCUMENTS */}
+          <div className={`tab-content ${activeTab === "docs" ? "on" : ""}`}>
+            <div>
+              <div className="sec">Gemini API Status</div>
+              <div
+                className={`gemini-status ${geminiStatus.up ? "ok" : "err"}`}
+              >
+                {geminiStatus.checking ? (
+                  "Checking..."
+                ) : geminiStatus.up ? (
+                  <>
+                    <span style={{ color: "var(--green)" }}>
+                      ● API Accessible
+                    </span>
+                    <br />
+                    Embed Model:{" "}
+                    <span style={{ color: "var(--accent)" }}>
+                      {geminiStatus.data.embedModel || "gemini-text-embedding"}
+                    </span>
+                    <br />
+                    Gen Model:{" "}
+                    <span style={{ color: "var(--accent)" }}>
+                      {geminiStatus.data.genModel || "gemini-1.5-flash"}
+                    </span>
+                    <br />
+                    Doc Chunks:{" "}
+                    <span style={{ color: "var(--text)" }}>
+                      {geminiStatus.data.docCount}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: "var(--red)" }}>
+                      ● API Offline or Invalid Key
+                    </span>
+                    <br />
+                    <br />
+                    <span style={{ color: "var(--muted)" }}>
+                      Ensure your .env file contains a valid Google API Key and
+                      your C++ backend is running on port 8080.
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="sec">Insert Document</div>
+              <form
+                onSubmit={insertDocument}
+                style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                <input
+                  type="text"
+                  name="docTitle"
+                  placeholder="Document title / topic…"
+                  required
+                />
+                <textarea
+                  name="docText"
+                  placeholder="Paste your notes or textbook excerpt here... Long text is automatically chunked and embedded via Gemini."
+                  required
+                ></textarea>
+                <button
+                  type="submit"
+                  className="btn-g"
+                  disabled={isInsertingDoc}
+                >
+                  {isInsertingDoc ? "Embedding…" : "⚡ EMBED & INSERT"}
+                </button>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                  {docInsertStatus}
+                </div>
+              </form>
+            </div>
+            <div>
+              <div className="sec">Stored Documents ({docs.length})</div>
+              <div className="doc-list">
+                {docs.length === 0 ? (
+                  <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                    No documents yet.
+                  </div>
+                ) : (
+                  docs.map((d) => (
+                    <div className="dcard" key={d.id}>
+                      <div className="dcard-title">{d.title}</div>
+                      <div className="dcard-preview">{d.preview}</div>
+                      <div className="dcard-foot">
+                        <span className="dcard-words">{d.words} words</span>
+                        <button
+                          className="del"
+                          onClick={() => deleteDocument(d.id, d.title)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* TAB: ASK AI (RAG) */}
+          <div className={`tab-content ${activeTab === "rag" ? "on" : ""}`}>
+            <div>
+              <div className="sec">Ask a Question</div>
+              <form
+                onSubmit={askAI}
+                style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                <textarea
+                  name="ragQuestion"
+                  rows="3"
+                  placeholder="What is dynamic programming?"
+                  required
+                ></textarea>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <select name="ragK" style={{ width: "auto", flexShrink: 0 }}>
+                    <option value="2">Top 2</option>
+                    <option value="3" defaultValue>
+                      Top 3
+                    </option>
+                    <option value="5">Top 5</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="btn-g"
+                    style={{ flex: 1 }}
+                    disabled={isAsking}
+                  >
+                    {isAsking ? "Thinking…" : "🤖 ASK AI"}
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div>
+              <div className="sec">Conversation</div>
+              <div className="chat-history">
+                {chatHistory.length === 0 ? (
+                  <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                    Ask a question about your inserted documents…
+                  </div>
+                ) : (
+                  chatHistory.map((msg, i) =>
+                    msg.role === "user" ? (
+                      <div key={i} className="chat-q">
+                        {msg.text}
+                      </div>
+                    ) : msg.role === "error" ? (
+                      <div key={i} className="chat-a">
+                        <div className="chat-a-label">ERROR</div>
+                        <div
+                          className="chat-a-text"
+                          style={{ color: "var(--red)" }}
+                        >
+                          {msg.text}
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={i} className="chat-a">
+                        <div className="chat-a-label">
+                          🤖 {msg.model || "gemini"}
+                        </div>
+                        <div className="chat-a-text">
+                          <Typewriter text={msg.text} />
+                        </div>
+                        {msg.contexts && msg.contexts.length > 0 && (
+                          <div className="chat-ctx">
+                            <div className="chat-ctx-label">
+                              RETRIEVED CONTEXT ({msg.contexts.length} chunks)
+                            </div>
+                            {msg.contexts.map((c, ci) => (
+                              <details key={ci} style={{ display: "inline" }}>
+                                <summary className="ctx-chip">
+                                  #{ci + 1} {c.title} · {c.distance.toFixed(3)}
+                                </summary>
+                                <div className="ctx-expand">{c.text}</div>
+                              </details>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )
+                )}
+                {isAsking && (
+                  <div className="thinking">
+                    <div className="spinner"></div>Retrieving context &
+                    generating answer…
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TOOLTIP */}
+      <div id="tip"></div>
+    </>
+  );
+}
