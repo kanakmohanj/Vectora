@@ -1,0 +1,15 @@
+# Ignore Windows binaries
+db.exe
+*.obj
+*.exe
+
+# Ignore environment variables (these should be set in Render's dashboard)
+.env
+
+# Ignore git history
+.git
+.gitignore
+
+# Ignore any local database save files if you create them later
+*.idx
+*.bin
