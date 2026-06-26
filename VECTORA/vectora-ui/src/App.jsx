@@ -624,34 +624,33 @@ export default function App() {
   };
 
   const runBenchmark = async () => {
-    // 1. Ensure there is a query to test against
-    const query = searchQuery || "binary tree";
+    const text = searchQuery || "binary tree";
     const algos = ["hnsw", "kdtree", "bruteforce"];
-    let resultsText = `🚀 BENCHMARK RESULTS 🚀\nQuery: "${query}"\nMetric: ${metric}\n\n`;
+    let resultsText = `🚀 BENCHMARK RESULTS 🚀\nQuery: "${text}"\nMetric: ${metric}\n\n`;
 
     try {
-      // 2. Alert the user that the test is running (in case it takes a moment)
       console.log("Starting benchmark...");
 
-      // 3. Loop through all 3 algorithms and ping the backend
+      // 🔥 FIX: Convert the text to a vector embedding FIRST
+      const emb = textToEmbedding(text);
+      const vString = emb.join(",");
+
       for (const algo of algos) {
-        const start = performance.now();
+        // 🔥 FIX: Use "?v=" to pass the vector string, matching runSearch exactly
         const res = await fetch(
-          `${API}/search?q=${encodeURIComponent(query)}&algo=${algo}&metric=${metric}&k=${topK}`,
+          `${API}/search?v=${vString}&k=${topK}&metric=${metric}&algo=${algo}`,
         );
 
         if (!res.ok) throw new Error(`${algo} search failed`);
 
         const data = await res.json();
 
-        // 4. Format the result (Assuming your backend returns data.latency)
         const formatAlgo = algo
           .toUpperCase()
           .replace("BRUTEFORCE", "BRUTE FORCE");
         resultsText += `• ${formatAlgo}: ${data.latencyUs} µs\n`;
       }
 
-      // 5. Display the final comparison!
       alert(resultsText);
     } catch (e) {
       console.error("Benchmark Error:", e);
