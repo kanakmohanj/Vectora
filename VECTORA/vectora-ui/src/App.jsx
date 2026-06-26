@@ -850,6 +850,21 @@ export default function App() {
         <span id="statsLabel">
           {allItems.length} vectors · {DIMS} dims
         </span>
+        <div
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "30px",
+            fontSize: "13px",
+            fontWeight: "500",
+            letterSpacing: "0.5px",
+            color: "var(--text-muted, #888)",
+            zIndex: 1000,
+            userSelect: "none",
+          }}
+        >
+          made with <span style={{ color: "#ff4757" }}>❤️</span> by Kanak
+        </div>
       </header>
 
       <div className="layout">
