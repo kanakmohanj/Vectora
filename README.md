@@ -13,7 +13,7 @@
 **A production-grade vector database built from the ground up in C++**  
 HNSW · KD-Tree · Brute Force · AVX2 SIMD · RAG Pipeline · Real-Time 2D Visualization
 
-🌐 **Live Demo:** [vectora.vercel.app](https://vectora.vercel.app) &nbsp;|&nbsp; 📦 **Backend API:** [vectora-engine.onrender.com](https://vectora-engine.onrender.com)
+🌐 **Live Demo:** [vectora-chi.vercel.app](https://vectora-chi.vercel.app) &nbsp;|&nbsp; 📦 **Backend API:** [vectora-1.onrender.com](https://vectora-1.onrender.com)
 
 </div>
 
@@ -513,7 +513,7 @@ Please open an issue before starting a large PR so we can align on approach.
 **Kanak Mohan**
 
 [![GitHub](https://img.shields.io/badge/GitHub-@kanakmohanj-181717?style=flat-square&logo=github)](https://github.com/kanakmohanj)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-link-here)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/kanak-mohan-jee/)
 
 ---
 
