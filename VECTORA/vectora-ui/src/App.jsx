@@ -624,14 +624,39 @@ export default function App() {
   };
 
   const runBenchmark = async () => {
-    const text = searchQuery.trim() || "binary tree algorithm";
-    const emb = textToEmbedding(text);
+    // 1. Ensure there is a query to test against
+    const query = searchQuery || "binary tree";
+    const algos = ["hnsw", "kdtree", "bruteforce"];
+    let resultsText = `🚀 BENCHMARK RESULTS 🚀\nQuery: "${query}"\nMetric: ${metric}\n\n`;
+
     try {
-      const r = await fetch(
-        `${API}/benchmark?v=${emb.join(",")}&k=5&metric=${metric}`,
-      );
-      setBenchmarks(await r.json());
-    } catch (e) {}
+      // 2. Alert the user that the test is running (in case it takes a moment)
+      console.log("Starting benchmark...");
+
+      // 3. Loop through all 3 algorithms and ping the backend
+      for (const algo of algos) {
+        const start = performance.now();
+        const res = await fetch(
+          `${API}/search?q=${encodeURIComponent(query)}&algo=${algo}&metric=${metric}&k=${topK}`,
+        );
+
+        if (!res.ok) throw new Error(`${algo} search failed`);
+
+        const data = await res.json();
+
+        // 4. Format the result (Assuming your backend returns data.latency)
+        const formatAlgo = algo
+          .toUpperCase()
+          .replace("BRUTEFORCE", "BRUTE FORCE");
+        resultsText += `• ${formatAlgo}: ${data.latency} µs\n`;
+      }
+
+      // 5. Display the final comparison!
+      alert(resultsText);
+    } catch (e) {
+      console.error("Benchmark Error:", e);
+      alert("Benchmark failed to run. Make sure your C++ backend is running!");
+    }
   };
 
   const addVector = async (e) => {
