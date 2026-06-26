@@ -648,7 +648,7 @@ export default function App() {
         const formatAlgo = algo
           .toUpperCase()
           .replace("BRUTEFORCE", "BRUTE FORCE");
-        resultsText += `• ${formatAlgo}: ${data.latency} µs\n`;
+        resultsText += `• ${formatAlgo}: ${data.latencyUs} µs\n`;
       }
 
       // 5. Display the final comparison!
